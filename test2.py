@@ -210,6 +210,7 @@ class Coordinator():
 
         return mnet_loss
 
+
 if __name__ == '__main__':
     args = parser.parse_args()
     print(args)        
