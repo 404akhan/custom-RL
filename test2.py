@@ -197,7 +197,7 @@ class Coordinator():
               value_targets.append(reward)
 
         feed_dict = {
-          self.model_net.states: np.array(states),
+          self.model_net.states: states,
           self.model_net.targets_pi: policy_targets,
           self.model_net.targets_v: value_targets,
           self.model_net.actions: actions,
