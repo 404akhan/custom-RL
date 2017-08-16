@@ -216,8 +216,9 @@ if __name__ == '__main__':
     print(args)        
 
     envs = []
-    for _ in range(args.num_agents):
+    for rank in range(1, args.num_agents+1):
         env = gym.envs.make(args.env_name)
+        env.seed(rank)
         envs.append(env)
     num_actions = envs[0].action_space.n
 
