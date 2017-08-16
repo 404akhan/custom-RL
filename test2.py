@@ -224,7 +224,10 @@ if __name__ == '__main__':
     state_pr = StateProcessor()
     model = Estimator(num_actions=num_actions, lr=args.lr)
 
-    with tf.Session() as sess:
+    gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.1)
+    tf_config = tf.ConfigProto(gpu_options=gpu_options)
+
+    with tf.Session(config=tf_config) as sess:
         sess.run(tf.global_variables_initializer())
         
         coord = Coordinator(sess=sess, num_agents=args.num_agents, envs=envs, state_pr=state_pr, model_net=model, gamma=args.gamma, t_max=args.t_max)
