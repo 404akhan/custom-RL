@@ -13,8 +13,9 @@ import gym
 
 parser = argparse.ArgumentParser(description='A2C')
 parser.add_argument('--num-agents', type=int, default=16)
-parser.add_argument('--gamma', type=float, default=0.99)
 parser.add_argument('--t-max', type=int, default=10)
+parser.add_argument('--gamma', type=float, default=0.99)
+parser.add_argument('--lr', type=float, default=0.00025)
 parser.add_argument('--env-name', default='PongDeterministic-v4')
 
 Transition = collections.namedtuple("Transition", ["state", "action", "reward", "next_state", "done"])
@@ -35,8 +36,9 @@ class StateProcessor():
 
 
 class Estimator():
-    def __init__(self, num_actions, scope="estimator"):
+    def __init__(self, num_actions, lr, scope="estimator"):
         self.num_actions = num_actions
+        self.lr = lr
         self.scope = scope
 
         with tf.variable_scope(scope):
@@ -76,7 +78,7 @@ class Estimator():
 
         # Combine loss
         self.loss = self.loss_pi + self.loss_v
-        self.optimizer = tf.train.RMSPropOptimizer(0.00025, 0.99, 0.0, 1e-6)
+        self.optimizer = tf.train.RMSPropOptimizer(self.lr, 0.99, 0.0, 1e-6)
         self.train_op = self.optimizer.minimize(self.loss)
 
 
@@ -219,7 +221,7 @@ if __name__ == '__main__':
     num_actions = envs[0].action_space.n
 
     state_pr = StateProcessor()
-    model = Estimator(num_actions=num_actions)
+    model = Estimator(num_actions=num_actions, lr=args.lr)
 
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
