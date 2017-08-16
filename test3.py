@@ -166,6 +166,7 @@ class Coordinator():
         self.num_epochs = num_epochs
         self.agents = []
         self.num_updates = 0
+        self.start_time = time.time()
 
         for i in range(num_agents):
             agent = Agent(index=i, sess=sess, env=envs[i], state_pr=state_pr, model_net=model, t_max=t_max)
@@ -185,6 +186,8 @@ class Coordinator():
         
         self.num_updates += 1
         print('update {}, loss {}'.format(self.num_updates, loss))
+        if self.num_updates % 1000 == 1:
+            print('time {}'.format(time.strftime("%Hh %Mm %Ss", time.gmtime(time.time() - self.start_time))))
 
     def update(self, transitions_batch):
         states = []
@@ -234,9 +237,8 @@ if __name__ == '__main__':
     print(args)        
 
     envs = []
-    for rank in range(1, args.num_agents+1):
+    for _ in range(args.num_agents):
         env = gym.envs.make(args.env_name)
-        env.seed(rank)
         envs.append(env)
     num_actions = envs[0].action_space.n
 
