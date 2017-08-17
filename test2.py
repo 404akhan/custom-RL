@@ -54,13 +54,15 @@ class Estimator():
         self.actions = tf.placeholder(shape=[None], dtype=tf.int32, name="actions")
 
         batch_size = tf.shape(self.states)[0]
-        conv1 = tf.contrib.layers.conv2d(self.states, 16, 8, 4, activation_fn=tf.nn.relu, scope="conv1")
-        conv2 = tf.contrib.layers.conv2d(conv1, 32, 4, 2, activation_fn=tf.nn.relu, scope="conv2")
+        conv1 = tf.contrib.layers.conv2d(self.states, 32, 3, 2, activation_fn=tf.nn.relu, scope="conv1")
+        conv2 = tf.contrib.layers.conv2d(conv1, 32, 3, 2, activation_fn=tf.nn.relu, scope="conv2")
+        conv3 = tf.contrib.layers.conv2d(conv2, 32, 3, 2, activation_fn=tf.nn.relu, scope="conv3")
+        conv4 = tf.contrib.layers.conv2d(conv3, 32, 3, 2, activation_fn=tf.nn.relu, scope="conv4")
         
-        flattened = tf.contrib.layers.flatten(conv2)
+        flattened = tf.contrib.layers.flatten(conv4)
 
         ### Policy
-        fc1 = tf.contrib.layers.fully_connected(flattened, 256)
+        fc1 = tf.contrib.layers.fully_connected(flattened, 256, activation_fn=tf.nn.relu)
         self.logits_pi = tf.contrib.layers.fully_connected(fc1, self.num_actions, activation_fn=None)
         self.probs_pi = tf.nn.softmax(self.logits_pi) + 1e-8
 
