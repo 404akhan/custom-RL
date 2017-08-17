@@ -219,11 +219,11 @@ class Coordinator():
 
                 value_next = value_cur
 
-              states.append(transition.state)
-              actions.append(transition.action)
-              advs.append(gae)
-              targets_v.append(R)
-              pi_olds.append(transition.pi_old)
+                states.append(transition.state)
+                actions.append(transition.action)
+                advs.append(gae)
+                targets_v.append(R)
+                pi_olds.append(transition.pi_old)
 
         data_size = len(states)
         shuf_arr = np.arange(0, data_size)
