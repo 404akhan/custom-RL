@@ -13,22 +13,24 @@ import gym
 
 parser = argparse.ArgumentParser(description='A2C')
 parser.add_argument('--num-agents', type=int, default=16)
-parser.add_argument('--t-max', type=int, default=10)
+parser.add_argument('--t-max', type=int, default=20)
+parser.add_argument('--imsize', type=int, default=42)
+
 parser.add_argument('--gamma', type=float, default=0.99)
-parser.add_argument('--lr', type=float, default=0.00025)
+parser.add_argument('--lr', type=float, default=0.001)
 parser.add_argument('--env-name', default='PongDeterministic-v4')
 
 Transition = collections.namedtuple("Transition", ["state", "action", "reward", "next_state", "done"])
 
 
 class StateProcessor():
-    def __init__(self):
+    def __init__(self, imsize):
         with tf.variable_scope("state_processor"):
             self.input_state = tf.placeholder(shape=[210, 160, 3], dtype=tf.uint8)
             self.output = tf.image.rgb_to_grayscale(self.input_state)
             self.output = tf.image.crop_to_bounding_box(self.output, 34, 0, 160, 160)
             self.output = tf.image.resize_images(
-                self.output, [84, 84], method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
+                self.output, [imsize, imsize], method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
             self.output = tf.squeeze(self.output)
 
     def process(self, sess, state):
@@ -36,16 +38,17 @@ class StateProcessor():
 
 
 class Estimator():
-    def __init__(self, num_actions, lr, scope="estimator"):
+    def __init__(self, num_actions, lr, imsize, scope="estimator"):
         self.num_actions = num_actions
         self.lr = lr
+        self.imsize = imsize
         self.scope = scope
 
         with tf.variable_scope(scope):
             self._build_model()
 
     def _build_model(self):
-        self.states = tf.placeholder(shape=[None, 84, 84, 4], dtype=tf.float32, name='X')
+        self.states = tf.placeholder(shape=[None, self.imsize, self.imsize, 4], dtype=tf.float32, name='X')
         self.targets_pi = tf.placeholder(shape=[None], dtype=tf.float32, name="targets_pi")
         self.targets_v = tf.placeholder(shape=[None], dtype=tf.float32, name="targets_v") 
         self.actions = tf.placeholder(shape=[None], dtype=tf.int32, name="actions")
@@ -77,8 +80,8 @@ class Estimator():
         self.loss_v = tf.reduce_sum(self.losses_v, name="loss_v")
 
         # Combine loss
-        self.loss = self.loss_pi + self.loss_v
-        self.optimizer = tf.train.RMSPropOptimizer(self.lr, 0.99, 0.0, 1e-6)
+        self.loss = self.loss_pi + 0.5*self.loss_v
+        self.optimizer = tf.train.AdamOptimizer(self.lr)
         self.train_op = self.optimizer.minimize(self.loss)
 
 
@@ -224,8 +227,8 @@ if __name__ == '__main__':
         envs.append(env)
     num_actions = envs[0].action_space.n
 
-    state_pr = StateProcessor()
-    model = Estimator(num_actions=num_actions, lr=args.lr)
+    state_pr = StateProcessor(imsize=args.imsize)
+    model = Estimator(num_actions=num_actions, lr=args.lr, imsize=args.imsize)
 
     gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.1)
     tf_config = tf.ConfigProto(gpu_options=gpu_options)
