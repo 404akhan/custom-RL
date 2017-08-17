@@ -16,6 +16,8 @@ parser.add_argument('--num-agents', type=int, default=8)
 parser.add_argument('--t-max', type=int, default=128)
 parser.add_argument('--num-epochs', type=int, default=3)
 parser.add_argument('--bsize', type=int, default=32*8)
+parser.add_argument('--imsize', type=int, default=84)
+
 parser.add_argument('--gamma', type=float, default=0.99)
 parser.add_argument('--lr', type=float, default=0.00025)
 parser.add_argument('--clip_param', type=float, default=0.1)
@@ -25,13 +27,13 @@ Transition = collections.namedtuple("Transition", ["state", "action", "reward", 
 
 
 class StateProcessor():
-    def __init__(self):
+    def __init__(self, imsize):
         with tf.variable_scope("state_processor"):
             self.input_state = tf.placeholder(shape=[210, 160, 3], dtype=tf.uint8)
             self.output = tf.image.rgb_to_grayscale(self.input_state)
             self.output = tf.image.crop_to_bounding_box(self.output, 34, 0, 160, 160)
             self.output = tf.image.resize_images(
-                self.output, [84, 84], method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
+                self.output, [imsize, imsize], method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
             self.output = tf.squeeze(self.output)
 
     def process(self, sess, state):
@@ -39,17 +41,18 @@ class StateProcessor():
 
 
 class Estimator():
-    def __init__(self, num_actions, lr, clip_param, scope="estimator"):
+    def __init__(self, num_actions, lr, clip_param, imsize, scope="estimator"):
         self.num_actions = num_actions
         self.lr = lr
         self.clip_param = clip_param
+        self.imsize = imsize
         self.scope = scope
 
         with tf.variable_scope(scope):
             self._build_model()
 
     def _build_model(self):
-        self.states = tf.placeholder(shape=[None, 84, 84, 4], dtype=tf.float32, name='X')
+        self.states = tf.placeholder(shape=[None, self.imsize, self.imsize, 4], dtype=tf.float32, name='X')
         self.actions = tf.placeholder(shape=[None], dtype=tf.int32, name="actions")
         self.advs = tf.placeholder(shape=[None], dtype=tf.float32, name="advs")
         self.targets_v = tf.placeholder(shape=[None], dtype=tf.float32, name="targets_v") 
@@ -255,8 +258,8 @@ if __name__ == '__main__':
         envs.append(env)
     num_actions = envs[0].action_space.n
 
-    state_pr = StateProcessor()
-    model = Estimator(num_actions=num_actions, lr=args.lr, clip_param=args.clip_param)
+    state_pr = StateProcessor(imsize=args.imsize)
+    model = Estimator(num_actions=num_actions, lr=args.lr, clip_param=args.clip_param, imsize=args.imsize)
 
     gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.1)
     tf_config = tf.ConfigProto(gpu_options=gpu_options)
