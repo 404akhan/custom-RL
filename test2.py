@@ -17,7 +17,7 @@ parser.add_argument('--t-max', type=int, default=20)
 parser.add_argument('--imsize', type=int, default=42)
 
 parser.add_argument('--gamma', type=float, default=0.99)
-parser.add_argument('--lr', type=float, default=0.001)
+parser.add_argument('--lr', type=float, default=0.0001)
 parser.add_argument('--env-name', default='PongDeterministic-v4')
 
 Transition = collections.namedtuple("Transition", ["state", "action", "reward", "next_state", "done"])
