@@ -11,13 +11,14 @@ import random
 import collections
 import gym
 
-parser = argparse.ArgumentParser(description='A2C')
-parser.add_argument('--num-agents', type=int, default=16)
-parser.add_argument('--t-max', type=int, default=10)
+parser = argparse.ArgumentParser(description='PPO')
+parser.add_argument('--num-agents', type=int, default=8)
+parser.add_argument('--t-max', type=int, default=128)
 parser.add_argument('--num-epochs', type=int, default=3)
+parser.add_argument('--bsize', type=int, default=32*8)
 parser.add_argument('--gamma', type=float, default=0.99)
 parser.add_argument('--lr', type=float, default=0.00025)
-parser.add_argument('--clip_param', type=float, default=0.2)
+parser.add_argument('--clip_param', type=float, default=0.1)
 parser.add_argument('--env-name', default='PongDeterministic-v4')
 
 Transition = collections.namedtuple("Transition", ["state", "action", "reward", "next_state", "done", "pi_old"])
@@ -88,7 +89,7 @@ class Estimator():
         self.loss_entr = - tf.reduce_sum(0.01 * self.entropy_pi, name='loss_entr')
 
         # Combine loss
-        self.loss = self.loss_pi + 0.5*self.loss_v + self.loss_entr
+        self.loss = self.loss_pi + self.loss_v + self.loss_entr
         self.optimizer = tf.train.RMSPropOptimizer(self.lr, 0.99, 0.0, 1e-6)
         self.train_op = self.optimizer.minimize(self.loss)
 
@@ -155,7 +156,7 @@ class Agent():
 
 
 class Coordinator():
-    def __init__(self, sess, num_agents, envs, state_pr, model_net, gamma, t_max, num_epochs):
+    def __init__(self, sess, num_agents, envs, state_pr, model_net, gamma, t_max, num_epochs, bsize):
         self.sess = sess
         self.num_agents = num_agents
         self.envs = envs
@@ -164,6 +165,8 @@ class Coordinator():
         self.gamma = gamma
         self.t_max = t_max
         self.num_epochs = num_epochs
+        self.bsize = bsize
+
         self.agents = []
         self.num_updates = 0
         self.start_time = time.time()
@@ -213,23 +216,33 @@ class Coordinator():
               targets_v.append(reward)
               pi_olds.append(transition.pi_old)
 
-        feed_dict = {
-          self.model_net.states: states,
-          self.model_net.actions: actions,
-          self.model_net.advs: advs,
-          self.model_net.targets_v: targets_v,
-          self.model_net.pi_olds: pi_olds
-        }
+        data_size = len(states)
+        shuf_arr = range(0, data_size)
+        random.shuffle(shuf_arr)
+        states_sh, actions_sh, advs_sh, targets_v_sh, pi_olds_sh = \
+            np.array(states)[shuf_arr], np.array(actions)[shuf_arr], np.array(advs)[shuf_arr], np.array(targets_v)[shuf_arr], np.array(pi_olds)[shuf_arr]
 
-        loss_sum = 0.
+        losses = []
         for _ in range(self.num_epochs):
-            mnet_loss, _ = sess.run([
-              self.model_net.loss,
-              self.model_net.train_op
-            ], feed_dict)
-            loss_sum += mnet_loss
+            for i in range(int(data_size / self.bsize)):
+                l, u = i * self.bsize, (i + 1) * self.bsize
+                if i == int(data_size / self.bsize) - 1: 
+                    u = data_size
+                
+                feed_dict = {
+                    self.model_net.states: states_sh[l:u],
+                    self.model_net.actions: actions_sh[l:u],
+                    self.model_net.advs: advs_sh[l:u],
+                    self.model_net.targets_v: targets_v_sh[l:u],
+                    self.model_net.pi_olds: pi_olds_sh[l:u]
+                }
+                mnet_loss, _ = sess.run([
+                    self.model_net.loss,
+                    self.model_net.train_op
+                ], feed_dict)
+                losses.append(mnet_loss)
 
-        return loss_sum / self.num_epochs
+        return np.mean(losses)
 
 
 if __name__ == '__main__':
@@ -252,7 +265,7 @@ if __name__ == '__main__':
         sess.run(tf.global_variables_initializer())
         
         coord = Coordinator(sess=sess, num_agents=args.num_agents, envs=envs, state_pr=state_pr, model_net=model, \
-            gamma=args.gamma, t_max=args.t_max, num_epochs=args.num_epochs)
+            gamma=args.gamma, t_max=args.t_max, num_epochs=args.num_epochs, bsize=args.bsize)
 
         while True:
             coord.run()
