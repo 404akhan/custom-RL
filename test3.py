@@ -217,7 +217,7 @@ class Coordinator():
               pi_olds.append(transition.pi_old)
 
         data_size = len(states)
-        shuf_arr = range(0, data_size)
+        shuf_arr = np.arange(0, data_size)
         random.shuffle(shuf_arr)
         states_sh, actions_sh, advs_sh, targets_v_sh, pi_olds_sh = \
             np.array(states)[shuf_arr], np.array(actions)[shuf_arr], np.array(advs)[shuf_arr], np.array(targets_v)[shuf_arr], np.array(pi_olds)[shuf_arr]
