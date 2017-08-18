@@ -171,10 +171,10 @@ class Coordinator():
         if self.num_updates % 1000 == 1:
             print('time {}'.format(time.strftime("%Hh %Mm %Ss", time.gmtime(time.time() - self.start_time))))
 
-    def update(self, transitions, sess):
+    def update(self, transitions):
         reward = 0.0
         if not transitions[-1].done:
-          reward = self._value_net_predict(transitions[-1].next_state, sess)
+          reward = self._value_net_predict(transitions[-1].next_state, self.sess)
 
         states = []
         actions = []
@@ -183,7 +183,7 @@ class Coordinator():
 
         for transition in transitions[::-1]:
           reward = transition.reward + self.discount_factor * reward
-          policy_target = (reward - self._value_net_predict(transition.state, sess))
+          policy_target = (reward - self._value_net_predict(transition.state, self.sess))
 
           states.append(transition.state)
           actions.append(transition.action)
@@ -197,7 +197,7 @@ class Coordinator():
           self.model_net.actions: actions,
         }
 
-        mnet_loss, _ = sess.run([
+        mnet_loss, _ = self.sess.run([
           self.model_net.loss,
           self.model_net.train_op
         ], feed_dict)
