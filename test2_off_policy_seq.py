@@ -69,12 +69,15 @@ class Estimator():
         self.losses_v = tf.squared_difference(self.logits_v, self.targets_v)
         self.loss_v = tf.reduce_sum(self.losses_v, name="loss_v")
 
+        self.losses_v_huber = tf.huber_loss(self.targets_v, self.logits_v)
+        self.loss_v_huber = 0.5 * tf.reduce_sum(self.losses_v_huber, name="loss_v_huber")
+
         # Combine loss
         self.loss = self.loss_pi + 0.5*self.loss_v
         self.optimizer = tf.train.AdamOptimizer(self.lr)
 
         self.train_op = self.optimizer.minimize(self.loss)
-        self.train_op_v = tf.train.AdamOptimizer(self.lr).minimize(self.loss_v)
+        self.train_op_v = tf.train.AdamOptimizer(self.lr).minimize(self.loss_v_huber)
 
 
 class Experience(object):
@@ -235,7 +238,7 @@ class Coordinator():
                 }
 
                 mnet_loss, _ = sess.run([
-                    self.model_net.loss_v,
+                    self.model_net.loss_v_huber,
                     self.model_net.train_op_v
                 ], feed_dict)
             ###
