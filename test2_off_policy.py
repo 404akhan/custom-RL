@@ -137,13 +137,13 @@ class Agent():
 
                 probs_new = self.sess.run(self.model_net.probs_pi, {self.model_net.states: states})
                 probs_new = probs_new[range(batch_size), actions]
-                value_next = self.sess.run(self.model_net.logits_v, {self.model_net.states: next_states})
+                values_next = self.sess.run(self.model_net.logits_v, {self.model_net.states: next_states})
 
-                value_targets = probs_new / probs_old * (rewards + np.invert(dones).astype(np.float32) * gamma * value_next)
+                values_target = probs_new / probs_old * (rewards + np.invert(dones).astype(np.float32) * gamma * values_next)
 
                 sess.run(self.model_net.loss_v, {
                     self.model_net.states: states,
-                    self.model_net.targets_v: value_targets,
+                    self.model_net.targets_v: values_target,
                     self.model_net.actions: actions
                 })
             ###
