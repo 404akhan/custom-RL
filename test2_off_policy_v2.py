@@ -51,11 +51,17 @@ class Estimator():
         conv2 = tf.contrib.layers.conv2d(conv1, 32, 3, 2, activation_fn=tf.nn.relu, scope="conv2")
         conv3 = tf.contrib.layers.conv2d(conv2, 32, 3, 2, activation_fn=tf.nn.relu, scope="conv3")
         conv4 = tf.contrib.layers.conv2d(conv3, 32, 3, 2, activation_fn=tf.nn.relu, scope="conv4")
-        
         flattened = tf.contrib.layers.flatten(conv4)
+        fc1 = tf.contrib.layers.fully_connected(flattened, 256, activation_fn=tf.nn.relu)
+
+        conv1_v = tf.contrib.layers.conv2d(self.states, 32, 3, 2, activation_fn=tf.nn.relu, scope="conv1")
+        conv2_v = tf.contrib.layers.conv2d(conv1_v, 32, 3, 2, activation_fn=tf.nn.relu, scope="conv2")
+        conv3_v = tf.contrib.layers.conv2d(conv2_v, 32, 3, 2, activation_fn=tf.nn.relu, scope="conv3")
+        conv4_v = tf.contrib.layers.conv2d(conv3_v, 32, 3, 2, activation_fn=tf.nn.relu, scope="conv4")
+        flattened_v = tf.contrib.layers.flatten(conv4_v)
+        fc1_v = tf.contrib.layers.fully_connected(flattened_v, 256, activation_fn=tf.nn.relu)
 
         ### Policy
-        fc1 = tf.contrib.layers.fully_connected(flattened, 256, activation_fn=tf.nn.relu)
         self.logits_pi = tf.contrib.layers.fully_connected(fc1, self.num_actions, activation_fn=None)
         self.probs_pi = tf.nn.softmax(self.logits_pi) + 1e-8
 
@@ -68,16 +74,15 @@ class Estimator():
         self.loss_pi = tf.reduce_sum(self.losses_pi, name="loss_pi")
 
         ### Value
-        self.logits_v = tf.contrib.layers.fully_connected(inputs=fc1, num_outputs=1, activation_fn=None)
+        self.logits_v = tf.contrib.layers.fully_connected(inputs=fc1_v, num_outputs=1, activation_fn=None)
         self.logits_v = tf.squeeze(self.logits_v, squeeze_dims=[1])
 
         self.losses_v = tf.squared_difference(self.logits_v, self.targets_v)
         self.loss_v = tf.reduce_sum(self.losses_v, name="loss_v")
 
         # Combine loss
-        self.loss = self.loss_pi + 0.5*self.loss_v
-        self.optimizer = tf.train.AdamOptimizer(self.lr)
-        self.train_op = self.optimizer.minimize(self.loss)
+        self.train_op = tf.train.AdamOptimizer(self.lr).minimize(self.loss_pi)
+        self.train_op_v = tf.train.AdamOptimizer(self.lr).minimize(self.loss_v)
 
 
 class Agent():
@@ -141,7 +146,7 @@ class Agent():
 
                 values_target = probs_new / probs_old * (rewards + np.invert(dones).astype(np.float32) * gamma * values_next)
 
-                sess.run(self.model_net.loss_v, {
+                sess.run(self.model_net.train_op_v, {
                     self.model_net.states: states,
                     self.model_net.targets_v: values_target,
                     self.model_net.actions: actions
@@ -225,7 +230,7 @@ class Coordinator():
         }
 
         mnet_loss, _ = self.sess.run([
-            self.model_net.loss,
+            self.model_net.loss_pi,
             self.model_net.train_op
         ], feed_dict)
 
