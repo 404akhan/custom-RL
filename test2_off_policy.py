@@ -131,20 +131,21 @@ class Agent():
             if len(exp_rep) == exp_rep_size:
                 exp_rep.pop(0)
 
-            samples = random.sample(exp_rep, batch_size)
-            states, actions, rewards, next_states, dones, probs_old = map(np.array, zip(*samples))
+            if len(exp_rep) >= exp_rep_size / 5:
+                samples = random.sample(exp_rep, batch_size)
+                states, actions, rewards, next_states, dones, probs_old = map(np.array, zip(*samples))
 
-            probs_new = self.sess.run(self.model_net.probs_pi, {self.model_net.states: states})
-            probs_new = probs_new[range(batch_size), actions]
-            value_next = self.sess.run(self.model_net.logits_v, {self.model_net.states: next_states})
+                probs_new = self.sess.run(self.model_net.probs_pi, {self.model_net.states: states})
+                probs_new = probs_new[range(batch_size), actions]
+                value_next = self.sess.run(self.model_net.logits_v, {self.model_net.states: next_states})
 
-            value_targets = probs_new / probs_old * (rewards + np.invert(dones).astype(np.float32) * gamma * value_next)
+                value_targets = probs_new / probs_old * (rewards + np.invert(dones).astype(np.float32) * gamma * value_next)
 
-            sess.run(self.loss_v, {
-                self.model_net.states: states,
-                self.model_net.targets_v: value_targets,
-                self.model_net.actions: actions
-            })
+                sess.run(self.model_net.loss_v, {
+                    self.model_net.states: states,
+                    self.model_net.targets_v: value_targets,
+                    self.model_net.actions: actions
+                })
             ###
 
             if done:
