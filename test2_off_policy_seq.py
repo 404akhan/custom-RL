@@ -69,7 +69,7 @@ class Estimator():
         self.losses_v = tf.squared_difference(self.logits_v, self.targets_v)
         self.loss_v = tf.reduce_sum(self.losses_v, name="loss_v")
 
-        self.losses_v_huber = tf.huber_loss(self.targets_v, self.logits_v)
+        self.losses_v_huber = tf.losses.huber_loss(self.targets_v, self.logits_v)
         self.loss_v_huber = 0.5 * tf.reduce_sum(self.losses_v_huber, name="loss_v_huber")
 
         # Combine loss
