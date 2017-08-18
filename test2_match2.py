@@ -174,7 +174,7 @@ class Coordinator():
     def update(self, transitions):
         reward = 0.0
         if not transitions[-1].done:
-          reward = self._value_net_predict(transitions[-1].next_state, self.sess)
+          reward = self._value_net_predict(transitions[-1].next_state)
 
         states = []
         actions = []
@@ -182,8 +182,8 @@ class Coordinator():
         value_targets = []
 
         for transition in transitions[::-1]:
-          reward = transition.reward + self.discount_factor * reward
-          policy_target = (reward - self._value_net_predict(transition.state, self.sess))
+          reward = transition.reward + self.gamma * reward
+          policy_target = (reward - self._value_net_predict(transition.state))
 
           states.append(transition.state)
           actions.append(transition.action)
@@ -191,7 +191,7 @@ class Coordinator():
           value_targets.append(reward)
 
         feed_dict = {
-          self.model_net.states: np.array(states),
+          self.model_net.states: states,
           self.model_net.targets_pi: policy_targets,
           self.model_net.targets_v: value_targets,
           self.model_net.actions: actions,
