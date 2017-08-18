@@ -54,10 +54,10 @@ class Estimator():
         flattened = tf.contrib.layers.flatten(conv4)
         fc1 = tf.contrib.layers.fully_connected(flattened, 256, activation_fn=tf.nn.relu)
 
-        conv1_v = tf.contrib.layers.conv2d(self.states, 32, 3, 2, activation_fn=tf.nn.relu, scope="conv1")
-        conv2_v = tf.contrib.layers.conv2d(conv1_v, 32, 3, 2, activation_fn=tf.nn.relu, scope="conv2")
-        conv3_v = tf.contrib.layers.conv2d(conv2_v, 32, 3, 2, activation_fn=tf.nn.relu, scope="conv3")
-        conv4_v = tf.contrib.layers.conv2d(conv3_v, 32, 3, 2, activation_fn=tf.nn.relu, scope="conv4")
+        conv1_v = tf.contrib.layers.conv2d(self.states, 32, 3, 2, activation_fn=tf.nn.relu, scope="conv1_v")
+        conv2_v = tf.contrib.layers.conv2d(conv1_v, 32, 3, 2, activation_fn=tf.nn.relu, scope="conv2_v")
+        conv3_v = tf.contrib.layers.conv2d(conv2_v, 32, 3, 2, activation_fn=tf.nn.relu, scope="conv3_v")
+        conv4_v = tf.contrib.layers.conv2d(conv3_v, 32, 3, 2, activation_fn=tf.nn.relu, scope="conv4_v")
         flattened_v = tf.contrib.layers.flatten(conv4_v)
         fc1_v = tf.contrib.layers.fully_connected(flattened_v, 256, activation_fn=tf.nn.relu)
 
