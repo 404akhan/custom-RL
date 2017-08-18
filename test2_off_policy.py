@@ -78,6 +78,8 @@ class Estimator():
         self.loss = self.loss_pi + 0.5*self.loss_v
         self.optimizer = tf.train.AdamOptimizer(self.lr)
         self.train_op = self.optimizer.minimize(self.loss)
+        
+        self.train_op_v = tf.train.AdamOptimizer(self.lr).minimize(self.loss_v)
 
 
 class Agent():
@@ -141,7 +143,7 @@ class Agent():
 
                 values_target = probs_new / probs_old * (rewards + np.invert(dones).astype(np.float32) * gamma * values_next)
 
-                sess.run(self.model_net.loss_v, {
+                sess.run(self.model_net.train_op_v, {
                     self.model_net.states: states,
                     self.model_net.targets_v: values_target,
                     self.model_net.actions: actions
