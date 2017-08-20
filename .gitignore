@@ -4,4 +4,4 @@ model-*
 nohup*
 *.log
 rest*.py
-a3c/tmp
+a3c/tmp*
