@@ -117,8 +117,8 @@ class Worker(object):
 
           # Update the global networks
           gl_step, loss = self.update(transitions, sess)
-          if gl_step % 16 == 0:
-            print(int(gl_step/16), loss)
+          # if gl_step % 16 == 0:
+          #   print(int(gl_step/16), loss)
 
       except tf.errors.CancelledError:
         return
