@@ -18,7 +18,7 @@ if import_path not in sys.path:
   sys.path.append(import_path)
 
 from lib.atari import helpers as atari_helpers
-from estimators import ValueEstimator, PolicyEstimator
+from estimators import *
 from policy_monitor import PolicyMonitor
 from worker import Worker
 
@@ -74,8 +74,7 @@ with tf.device("/cpu:0"):
 
   # Global policy and value nets
   with tf.variable_scope("global") as vs:
-    policy_net = PolicyEstimator(num_outputs=len(VALID_ACTIONS))
-    value_net = ValueEstimator(reuse=True)
+    model_net = Estimator(num_outputs=len(VALID_ACTIONS))
 
   # Global step iterator
   global_counter = itertools.count()
@@ -93,8 +92,7 @@ with tf.device("/cpu:0"):
     worker = Worker(
       name="worker_{}".format(worker_id),
       env=make_env(),
-      policy_net=policy_net,
-      value_net=value_net,
+      model_net=model_net,
       global_counter=global_counter,
       discount_factor = 0.99,
       summary_writer=worker_summary_writer,
@@ -107,7 +105,7 @@ with tf.device("/cpu:0"):
   # and write episode rewards to Tensorboard
   pe = PolicyMonitor(
     env=make_env(wrap=False),
-    policy_net=policy_net,
+    model_net=model_net,
     summary_writer=summary_writer,
     saver=saver)
 

@@ -18,7 +18,7 @@ import gym
 
 from lib.atari.state_processor import StateProcessor
 from lib.atari import helpers as atari_helpers
-from estimators import ValueEstimator, PolicyEstimator
+from estimators import *
 from worker import make_copy_params_op
 
 
@@ -32,13 +32,13 @@ class PolicyMonitor(object):
     policy_net: A policy estimator
     summary_writer: a tf.train.SummaryWriter used to write Tensorboard summaries
   """
-  def __init__(self, env, policy_net, summary_writer, saver=None):
+  def __init__(self, env, model_net, summary_writer, saver=None):
 
     self.video_dir = os.path.join(summary_writer.get_logdir(), "../videos")
     self.video_dir = os.path.abspath(self.video_dir)
 
     self.env = env # Monitor(env, directory=self.video_dir, video_callable=lambda x: True, resume=True)
-    self.global_policy_net = policy_net
+    self.global_model_net = model_net
     self.summary_writer = summary_writer
     self.saver = saver
     self.sp = StateProcessor()
@@ -52,7 +52,7 @@ class PolicyMonitor(object):
 
     # Local policy net
     with tf.variable_scope("policy_eval"):
-      self.policy_net = PolicyEstimator(policy_net.num_outputs)
+      self.model_net = Estimator(model_net.num_outputs)
 
     # Op to copy params from global policy/value net parameters
     self.copy_params_op = make_copy_params_op(
@@ -60,9 +60,9 @@ class PolicyMonitor(object):
       tf.contrib.slim.get_variables(scope="policy_eval", collection=tf.GraphKeys.TRAINABLE_VARIABLES))
 
   def _policy_net_predict(self, state, sess):
-    feed_dict = { self.policy_net.states: [state] }
-    preds = sess.run(self.policy_net.predictions, feed_dict)
-    return preds["probs"][0]
+    feed_dict = { self.model_net.states: [state] }
+    probs = sess.run(self.model_net.probs_pi, feed_dict)
+    return probs[0] 
 
   def eval_once(self, sess):
     with sess.as_default(), sess.graph.as_default():
