@@ -89,6 +89,14 @@ class Worker(object):
 
     self.state = None
     self.sum_reward = 0.
+    self.current_life = 0
+    
+  def is_dead(info):
+    dead = False
+    if self.current_life > info['ale.lives']:
+        dead = True
+    self.current_life = info['ale.lives']
+    return dead
 
   def run(self, sess, coord, t_max):
     with sess.as_default(), sess.graph.as_default():
@@ -131,13 +139,14 @@ class Worker(object):
       # Take a step
       action_probs = self._policy_net_predict(self.state, sess)
       action = np.random.choice(np.arange(len(action_probs)), p=action_probs)
-      next_state, reward, done, _ = self.env.step(action)
+      next_state, reward, done, info = self.env.step(action)
+      dead = is_dead(info)
       next_state = atari_helpers.atari_make_next_state(self.state, next_state)
       self.sum_reward += reward
 
       # Store transition
       transitions.append(Transition(
-        state=self.state, action=action, reward=reward, next_state=next_state, done=done))
+        state=self.state, action=action, reward=reward, next_state=next_state, done=done or dead))
 
       # Increase local and global counters
       local_t = next(self.local_counter)
@@ -153,6 +162,11 @@ class Worker(object):
         break
       else:
         self.state = next_state
+
+      if dead:
+        self.state = np.stack([next_state[:,:,-1]] * 4, axis=2)
+        break
+
     return transitions, local_t, global_t
 
   def update(self, transitions, sess):
