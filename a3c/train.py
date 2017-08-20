@@ -38,8 +38,8 @@ def make_env(wrap=True):
   env = create_atari_env(FLAGS.env)
   # remove the timelimitwrapper
   # env = env.env
-  if wrap:
-    env = atari_helpers.AtariEnvWrapper(env)
+  # if wrap:
+  #   env = atari_helpers.AtariEnvWrapper(env)
   return env
 
 # Depending on the game we may have a limited action space
