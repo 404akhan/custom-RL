@@ -91,7 +91,7 @@ class Worker(object):
     self.sum_reward = 0.
     self.current_life = 0
     
-  def is_dead(info):
+  def is_dead(self, info):
     dead = False
     if self.current_life > info['ale.lives']:
         dead = True
@@ -140,7 +140,7 @@ class Worker(object):
       action_probs = self._policy_net_predict(self.state, sess)
       action = np.random.choice(np.arange(len(action_probs)), p=action_probs)
       next_state, reward, done, info = self.env.step(action)
-      dead = is_dead(info)
+      dead = self.is_dead(info)
       next_state = atari_helpers.atari_make_next_state(self.state, next_state)
       self.sum_reward += reward
 
