@@ -1,3 +1,4 @@
+from envs import create_atari_env
 import unittest
 import gym
 import sys
@@ -33,9 +34,9 @@ tf.flags.DEFINE_integer("parallelism", None, "Number of threads to run. If not s
 FLAGS = tf.flags.FLAGS
 
 def make_env(wrap=True):
-  env = gym.envs.make(FLAGS.env)
+  env = create_atari_env(FLAGS.env)
   # remove the timelimitwrapper
-  env = env.env
+  # env = env.env
   if wrap:
     env = atari_helpers.AtariEnvWrapper(env)
   return env

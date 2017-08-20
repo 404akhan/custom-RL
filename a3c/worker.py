@@ -95,7 +95,7 @@ class Worker(object):
   def run(self, sess, coord, t_max):
     with sess.as_default(), sess.graph.as_default():
       # Initial state
-      self.state = atari_helpers.atari_make_initial_state(self.sp.process(self.env.reset()))
+      self.state = atari_helpers.atari_make_initial_state(self.env.reset())
       try:
         while not coord.should_stop():
           # Copy Parameters from the global networks
@@ -132,7 +132,7 @@ class Worker(object):
       action_probs = self._policy_net_predict(self.state, sess)
       action = np.random.choice(np.arange(len(action_probs)), p=action_probs)
       next_state, reward, done, _ = self.env.step(action)
-      next_state = atari_helpers.atari_make_next_state(self.state, self.sp.process(next_state))
+      next_state = atari_helpers.atari_make_next_state(self.state, next_state)
 
       # Store transition
       transitions.append(Transition(
@@ -146,7 +146,7 @@ class Worker(object):
         tf.logging.info("{}: local Step {}, global step {}".format(self.name, local_t, global_t))
 
       if done:
-        self.state = atari_helpers.atari_make_initial_state(self.sp.process(self.env.reset()))
+        self.state = atari_helpers.atari_make_initial_state(self.env.reset())
         break
       else:
         self.state = next_state

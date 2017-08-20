@@ -15,20 +15,22 @@ def build_shared_network(X, add_summaries=False):
   """
 
   # Three convolutional layers
-  conv1 = tf.contrib.layers.conv2d(
-    X, 16, 8, 4, activation_fn=tf.nn.relu, scope="conv1")
-  conv2 = tf.contrib.layers.conv2d(
-    conv1, 32, 4, 2, activation_fn=tf.nn.relu, scope="conv2")
+  conv1 = tf.contrib.layers.conv2d(X, 32, 3, 2, activation_fn=tf.nn.relu, scope="conv1")
+  conv2 = tf.contrib.layers.conv2d(conv1, 32, 3, 2, activation_fn=tf.nn.relu, scope="conv2")
+  conv3 = tf.contrib.layers.conv2d(conv2, 32, 3, 2, activation_fn=tf.nn.relu, scope="conv3")
+  conv4 = tf.contrib.layers.conv2d(conv3, 32, 3, 2, activation_fn=tf.nn.relu, scope="conv4")
 
   # Fully connected layer
   fc1 = tf.contrib.layers.fully_connected(
-    inputs=tf.contrib.layers.flatten(conv2),
+    inputs=tf.contrib.layers.flatten(conv4),
     num_outputs=256,
     scope="fc1")
 
   if add_summaries:
     tf.contrib.layers.summarize_activation(conv1)
     tf.contrib.layers.summarize_activation(conv2)
+    tf.contrib.layers.summarize_activation(conv3)
+    tf.contrib.layers.summarize_activation(conv4)
     tf.contrib.layers.summarize_activation(fc1)
 
   return fc1
@@ -51,7 +53,7 @@ class PolicyEstimator():
 
     # Placeholders for our input
     # Our input are 4 RGB frames of shape 160, 160 each
-    self.states = tf.placeholder(shape=[None, 84, 84, 4], dtype=tf.uint8, name="X")
+    self.states = tf.placeholder(shape=[None, 42, 42, 4], dtype=tf.uint8, name="X")
     # The TD target value
     self.targets = tf.placeholder(shape=[None], dtype=tf.float32, name="y")
     # Integer id of which action was selected
@@ -120,7 +122,7 @@ class ValueEstimator():
   def __init__(self, reuse=False, trainable=True):
     # Placeholders for our input
     # Our input are 4 RGB frames of shape 160, 160 each
-    self.states = tf.placeholder(shape=[None, 84, 84, 4], dtype=tf.uint8, name="X")
+    self.states = tf.placeholder(shape=[None, 42, 42, 4], dtype=tf.uint8, name="X")
     # The TD target value
     self.targets = tf.placeholder(shape=[None], dtype=tf.float32, name="y")
 

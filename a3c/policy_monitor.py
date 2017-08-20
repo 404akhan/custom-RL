@@ -71,14 +71,14 @@ class PolicyMonitor(object):
 
       # Run an episode
       done = False
-      state = atari_helpers.atari_make_initial_state(self.sp.process(self.env.reset()))
+      state = atari_helpers.atari_make_initial_state(self.env.reset())
       total_reward = 0.0
       episode_length = 0
       while not done:
         action_probs = self._policy_net_predict(state, sess)
         action = np.random.choice(np.arange(len(action_probs)), p=action_probs)
         next_state, reward, done, _ = self.env.step(action)
-        next_state = atari_helpers.atari_make_next_state(state, self.sp.process(next_state))
+        next_state = atari_helpers.atari_make_next_state(state, next_state)
         total_reward += reward
         episode_length += 1
         state = next_state
