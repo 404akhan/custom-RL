@@ -43,7 +43,7 @@ def make_train_op(local_estimator, global_estimator):
   """
   local_grads, _ = zip(*local_estimator.grads_and_vars)
   # Clip gradients
-  local_grads, _ = tf.clip_by_global_norm(local_grads, 5.0)
+  # local_grads, _ = tf.clip_by_global_norm(local_grads, 40.0)
   _, global_vars = zip(*global_estimator.grads_and_vars)
   local_global_grads_and_vars = list(zip(local_grads, global_vars))
   return global_estimator.optimizer.apply_gradients(local_global_grads_and_vars,
@@ -88,6 +88,7 @@ class Worker(object):
     self.mnet_train_op = make_train_op(self.model_net, self.global_model_net)
 
     self.state = None
+    self.sum_reward = 0.
 
   def run(self, sess, coord, t_max):
     with sess.as_default(), sess.graph.as_default():
@@ -107,7 +108,9 @@ class Worker(object):
             return
 
           # Update the global networks
-          self.update(transitions, sess)
+          gl_step, loss = self.update(transitions, sess)
+          if gl_step % 16 == 0:
+            print(int(gl_step/16), loss)
 
       except tf.errors.CancelledError:
         return
@@ -130,6 +133,7 @@ class Worker(object):
       action = np.random.choice(np.arange(len(action_probs)), p=action_probs)
       next_state, reward, done, _ = self.env.step(action)
       next_state = atari_helpers.atari_make_next_state(self.state, next_state)
+      self.sum_reward += reward
 
       # Store transition
       transitions.append(Transition(
@@ -144,6 +148,8 @@ class Worker(object):
 
       if done:
         self.state = atari_helpers.atari_make_initial_state(self.env.reset())
+        print(self.name, local_t, self.sum_reward)
+        self.sum_reward = 0.
         break
       else:
         self.state = next_state
@@ -192,4 +198,4 @@ class Worker(object):
       self.mnet_train_op
     ], feed_dict)
 
-    return loss
+    return global_step, loss
