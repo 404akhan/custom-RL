@@ -157,7 +157,7 @@ class Worker(object):
 
       if done:
         self.state = atari_helpers.atari_make_initial_state(self.env.reset())
-        print(self.name, local_t, self.sum_reward)
+        # print(self.name, local_t, self.sum_reward)
         self.sum_reward = 0.
         break
       else:
