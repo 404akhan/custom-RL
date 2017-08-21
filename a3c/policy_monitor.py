@@ -16,32 +16,20 @@ if import_path not in sys.path:
 from gym.wrappers import Monitor
 import gym
 
-from lib.atari.state_processor import StateProcessor
-from lib.atari import helpers as atari_helpers
 from estimators import *
 from worker import make_copy_params_op
 
 
 class PolicyMonitor(object):
-  """
-  Helps evaluating a policy by running an episode in an environment,
-  saving a video, and plotting summaries to Tensorboard.
-
-  Args:
-    env: environment to run in
-    policy_net: A policy estimator
-    summary_writer: a tf.train.SummaryWriter used to write Tensorboard summaries
-  """
   def __init__(self, env, model_net, summary_writer, saver=None):
 
     self.video_dir = os.path.join(summary_writer.get_logdir(), "../videos")
     self.video_dir = os.path.abspath(self.video_dir)
 
-    self.env = env # Monitor(env, directory=self.video_dir, video_callable=lambda x: True, resume=True)
+    self.env = env 
     self.global_model_net = model_net
     self.summary_writer = summary_writer
     self.saver = saver
-    self.sp = StateProcessor()
 
     self.checkpoint_path = os.path.abspath(os.path.join(summary_writer.get_logdir(), "../checkpoints/model"))
 
@@ -71,14 +59,14 @@ class PolicyMonitor(object):
 
       # Run an episode
       done = False
-      state = atari_helpers.atari_make_initial_state(self.env.reset())
+      state = atari_make_initial_state(self.env.reset())
       total_reward = 0.0
       episode_length = 0
       while not done:
         action_probs = self._policy_net_predict(state, sess)
-        action = np.random.choice(np.arange(len(action_probs)), p=action_probs)
+        action = np.argmax(action_probs)
         next_state, reward, done, _ = self.env.step(action)
-        next_state = atari_helpers.atari_make_next_state(state, next_state)
+        next_state = atari_make_next_state(state, next_state)
         total_reward += reward
         episode_length += 1
         state = next_state

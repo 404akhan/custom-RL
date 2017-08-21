@@ -9,6 +9,7 @@ import itertools
 import shutil
 import threading
 import multiprocessing
+from gym import wrappers
 
 from inspect import getsourcefile
 current_path = os.path.dirname(os.path.abspath(getsourcefile(lambda:0)))
@@ -22,28 +23,24 @@ from policy_monitor import PolicyMonitor
 from worker import Worker
 
 
-tf.flags.DEFINE_string("model_dir", "./tmp", "Directory to write Tensorboard summaries and videos to.")
-tf.flags.DEFINE_string("env", "Pong-v0", "Name of gym Atari environment, e.g. Pong-v0")
-tf.flags.DEFINE_integer("t_max", 20, "Number of steps before performing an update")
+tf.flags.DEFINE_string("model_dir", "/tmp/a3c", "Directory to write Tensorboard summaries and videos to.")
+tf.flags.DEFINE_string("env", "Breakout-v0", "Name of gym Atari environment, e.g. Breakout-v0")
+tf.flags.DEFINE_integer("t_max", 5, "Number of steps before performing an update")
 tf.flags.DEFINE_integer("max_global_steps", None, "Stop training after this many steps in the environment. Defaults to running indefinitely.")
-tf.flags.DEFINE_integer("eval_every", 60, "Evaluate the policy every N seconds")
+tf.flags.DEFINE_integer("eval_every", 300, "Evaluate the policy every N seconds")
 tf.flags.DEFINE_boolean("reset", False, "If set, delete the existing model directory and start training from scratch.")
 tf.flags.DEFINE_integer("parallelism", None, "Number of threads to run. If not set we run [num_cpu_cores] threads.")
 
 FLAGS = tf.flags.FLAGS
 
-def make_env():
+def make_env(wrap=True):
   env = create_atari_env(FLAGS.env)
   return env
 
-env_ = make_env()
-VALID_ACTIONS = list(range(env_.action_space.n))
-env_.close()
-
-# Set the number of workers
-NUM_WORKERS = multiprocessing.cpu_count()
-if FLAGS.parallelism:
-  NUM_WORKERS = FLAGS.parallelism
+# Depending on the game we may have a limited action space
+env = make_env()
+env = wrappers.Monitor(env, './tmp-videos/pong')
+VALID_ACTIONS = list(range(env.action_space.n))
 
 MODEL_DIR = FLAGS.model_dir
 CHECKPOINT_DIR = os.path.join(MODEL_DIR, "checkpoints")
@@ -57,6 +54,13 @@ if not os.path.exists(CHECKPOINT_DIR):
 
 summary_writer = tf.summary.FileWriter(os.path.join(MODEL_DIR, "train"))
 
+
+def policy_net_predict(model_net, state, sess):
+  feed_dict = { model_net.states: [state] }
+  probs = sess.run(model_net.probs_pi, feed_dict)
+  return probs[0] 
+
+
 with tf.device("/cpu:0"):
 
   # Keeps track of the number of updates we've performed
@@ -69,39 +73,10 @@ with tf.device("/cpu:0"):
   # Global step iterator
   global_counter = itertools.count()
 
-  # Create worker graphs
-  workers = []
-  for worker_id in range(NUM_WORKERS):
-    # We only write summaries in one of the workers because they're
-    # pretty much identical and writing them on all workers
-    # would be a waste of space
-    worker_summary_writer = None
-    if worker_id == 0:
-      worker_summary_writer = summary_writer
-
-    worker = Worker(
-      name="worker_{}".format(worker_id),
-      env=make_env(),
-      model_net=model_net,
-      global_counter=global_counter,
-      discount_factor = 0.99,
-      summary_writer=worker_summary_writer,
-      max_global_steps=FLAGS.max_global_steps)
-    workers.append(worker)
-
   saver = tf.train.Saver(keep_checkpoint_every_n_hours=2.0, max_to_keep=10)
-
-  # Used to occasionally save videos for our policy net
-  # and write episode rewards to Tensorboard
-  pe = PolicyMonitor(
-    env=make_env(),
-    model_net=model_net,
-    summary_writer=summary_writer,
-    saver=saver)
 
 with tf.Session() as sess:
   sess.run(tf.global_variables_initializer())
-  coord = tf.train.Coordinator()
 
   # Load a previous checkpoint if it exists
   latest_checkpoint = tf.train.latest_checkpoint(CHECKPOINT_DIR)
@@ -109,17 +84,17 @@ with tf.Session() as sess:
     print("Loading model checkpoint: {}".format(latest_checkpoint))
     saver.restore(sess, latest_checkpoint)
 
-  # Start worker threads
-  worker_threads = []
-  for worker in workers:
-    worker_fn = lambda: worker.run(sess, coord, FLAGS.t_max)
-    t = threading.Thread(target=worker_fn)
-    t.start()
-    worker_threads.append(t)
+  for i_episode in range(110):
+    state = atari_make_initial_state(env.reset())
+    sum_reward = 0
+    for t in itertools.count():
+      action_probs = policy_net_predict(model_net, state, sess)
+      action = np.argmax(action_probs)
+      next_state, reward, done, info = env.step(action)
+      sum_reward += reward
+      state = atari_make_next_state(state, next_state)
 
-  # Start a thread for policy eval task
-  monitor_thread = threading.Thread(target=lambda: pe.continuous_eval(FLAGS.eval_every, sess, coord))
-  monitor_thread.start()
-
-  # Wait for all workers to finish
-  coord.join(worker_threads)
+      if done:
+        print("Episode finished after {} timesteps, {} reward".format(t+1, sum_reward))
+        sum_reward = 0
+        break

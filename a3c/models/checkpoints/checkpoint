@@ -1,2 +1,2 @@
-model_checkpoint_path: "/dev/working-dir/custom-RL/a3c/tmp4/checkpoints/model"
-all_model_checkpoint_paths: "/dev/working-dir/custom-RL/a3c/tmp4/checkpoints/model"
+model_checkpoint_path: "/home/akhan/py_projects/custom-RL/a3c/models/checkpoints/model"
+all_model_checkpoint_paths: "/home/akhan/py_projects/custom-RL/a3c/models/checkpoints/model"

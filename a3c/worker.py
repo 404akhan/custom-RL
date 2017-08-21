@@ -13,19 +13,12 @@ import_path = os.path.abspath(os.path.join(current_path, "../.."))
 if import_path not in sys.path:
   sys.path.append(import_path)
 
-# from lib import plotting
-from lib.atari.state_processor import StateProcessor
-from lib.atari import helpers as atari_helpers
 from estimators import *
 
 Transition = collections.namedtuple("Transition", ["state", "action", "reward", "next_state", "done"])
 
 
 def make_copy_params_op(v1_list, v2_list):
-  """
-  Creates an operation that copies parameters from variable in v1_list to variables in v2_list.
-  The ordering of the variables in the lists must be identical.
-  """
   v1_list = list(sorted(v1_list, key=lambda v: v.name))
   v2_list = list(sorted(v2_list, key=lambda v: v.name))
 
@@ -42,8 +35,6 @@ def make_train_op(local_estimator, global_estimator):
   to the global estimator.
   """
   local_grads, _ = zip(*local_estimator.grads_and_vars)
-  # Clip gradients
-  # local_grads, _ = tf.clip_by_global_norm(local_grads, 40.0)
   _, global_vars = zip(*global_estimator.grads_and_vars)
   local_global_grads_and_vars = list(zip(local_grads, global_vars))
   return global_estimator.optimizer.apply_gradients(local_global_grads_and_vars,
@@ -51,19 +42,6 @@ def make_train_op(local_estimator, global_estimator):
 
 
 class Worker(object):
-  """
-  An A3C worker thread. Runs episodes locally and updates global shared value and policy nets.
-
-  Args:
-    name: A unique name for this worker
-    env: The Gym environment used by this worker
-    policy_net: Instance of the globally shared policy net
-    value_net: Instance of the globally shared value net
-    global_counter: Iterator that holds the global step
-    discount_factor: Reward discount factor
-    summary_writer: A tf.train.SummaryWriter for Tensorboard summaries
-    max_global_steps: If set, stop coordinator when global_counter > max_global_steps
-  """
   def __init__(self, name, env, model_net, global_counter, discount_factor=0.99, summary_writer=None, max_global_steps=None):
     self.name = name
     self.discount_factor = discount_factor
@@ -72,7 +50,6 @@ class Worker(object):
     self.global_model_net = model_net
     self.global_counter = global_counter
     self.local_counter = itertools.count()
-    self.sp = StateProcessor()
     self.summary_writer = summary_writer
     self.env = env
 
@@ -101,7 +78,7 @@ class Worker(object):
   def run(self, sess, coord, t_max):
     with sess.as_default(), sess.graph.as_default():
       # Initial state
-      self.state = atari_helpers.atari_make_initial_state(self.env.reset())
+      self.state = atari_make_initial_state(self.env.reset())
       try:
         while not coord.should_stop():
           # Copy Parameters from the global networks
@@ -117,8 +94,6 @@ class Worker(object):
 
           # Update the global networks
           gl_step, loss = self.update(transitions, sess)
-          # if gl_step % 16 == 0:
-          #   print(int(gl_step/16), loss)
 
       except tf.errors.CancelledError:
         return
@@ -141,7 +116,7 @@ class Worker(object):
       action = np.random.choice(np.arange(len(action_probs)), p=action_probs)
       next_state, reward, done, info = self.env.step(action)
       dead = self.is_dead(info)
-      next_state = atari_helpers.atari_make_next_state(self.state, next_state)
+      next_state = atari_make_next_state(self.state, next_state)
       self.sum_reward += reward
 
       # Store transition
@@ -156,28 +131,20 @@ class Worker(object):
         tf.logging.info("{}: local Step {}, global step {}".format(self.name, local_t, global_t))
 
       if done:
-        self.state = atari_helpers.atari_make_initial_state(self.env.reset())
-        # print(self.name, local_t, self.sum_reward)
+        self.state = atari_make_initial_state(self.env.reset())
+        print(self.name, local_t, self.sum_reward)
         self.sum_reward = 0.
         break
       else:
         self.state = next_state
 
       if dead:
-        self.state = np.stack([next_state[:,:,-1]] * 4, axis=2)
+        self.state = atari_make_initial_state(next_state[:,:,-1])
         break
 
     return transitions, local_t, global_t
 
   def update(self, transitions, sess):
-    """
-    Updates global policy and value networks based on collected experience
-
-    Args:
-      transitions: A list of experience transitions
-      sess: A Tensorflow session
-    """
-
     # If we episode was not done we bootstrap the value from the last state
     reward = 0.0
     if not transitions[-1].done:
@@ -205,7 +172,7 @@ class Worker(object):
       self.model_net.targets_v: value_targets,
     }
 
-    # Train the global estimators using local gradients
+    # Train the global estimator using local gradients
     global_step, loss, _ = sess.run([
       self.global_step,
       self.model_net.loss,
