@@ -114,10 +114,11 @@ class Worker(object):
       # Take a step
       action_probs = self._policy_net_predict(self.state, sess)
       action = np.random.choice(np.arange(len(action_probs)), p=action_probs)
-      next_state, reward, done, info = self.env.step(action)
+      next_state, rew, done, info = self.env.step(action)
+      reward = max(min(rew, 1), -1)
       dead = self.is_dead(info)
       next_state = atari_make_next_state(self.state, next_state)
-      self.sum_reward += reward
+      self.sum_reward += rew
 
       # Store transition
       transitions.append(Transition(
