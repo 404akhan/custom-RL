@@ -44,15 +44,8 @@ VALID_ACTIONS = list(range(env.action_space.n))
 
 CHECKPOINT_DIR = FLAGS.ckpt_dir
 
-# Optionally empty model directory
-if FLAGS.reset:
-  shutil.rmtree(MODEL_DIR, ignore_errors=True)
-
 if not os.path.exists(CHECKPOINT_DIR):
   os.makedirs(CHECKPOINT_DIR)
-
-summary_writer = tf.summary.FileWriter(os.path.join(MODEL_DIR, "train"))
-
 
 def policy_net_predict(model_net, state, sess):
   feed_dict = { model_net.states: [state] }
