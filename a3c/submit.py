@@ -39,11 +39,11 @@ def make_env(wrap=True):
 
 # Depending on the game we may have a limited action space
 env = make_env()
-env = wrappers.Monitor(env, './tmp-videos/pong')
+env = wrappers.Monitor(env, './tmp-videos/run1')
 VALID_ACTIONS = list(range(env.action_space.n))
 
 MODEL_DIR = FLAGS.model_dir
-CHECKPOINT_DIR = os.path.join(MODEL_DIR, "checkpoints")
+CHECKPOINT_DIR = os.path.join(MODEL_DIR, "checkpoints-breakout")
 
 # Optionally empty model directory
 if FLAGS.reset:
