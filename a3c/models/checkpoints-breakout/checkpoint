@@ -1,0 +1,2 @@
+model_checkpoint_path: "/root/working-dir/a3c-test1/a3c/tmp-breakout/checkpoints/model"
+all_model_checkpoint_paths: "/root/working-dir/a3c-test1/a3c/tmp-breakout/checkpoints/model"
