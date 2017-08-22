@@ -23,7 +23,7 @@ from policy_monitor import PolicyMonitor
 from worker import Worker
 
 
-tf.flags.DEFINE_string("model_dir", "./tmp", "Directory to write Tensorboard summaries and videos to.")
+tf.flags.DEFINE_string("ckpt_dir", "./models/checkpoints-breakout", "Directory where checkpoint is saved.")
 tf.flags.DEFINE_string("env", "Pong-v0", "Name of gym Atari environment, e.g. Pong-v0")
 tf.flags.DEFINE_integer("t_max", 20, "Number of steps before performing an update")
 tf.flags.DEFINE_integer("max_global_steps", None, "Stop training after this many steps in the environment. Defaults to running indefinitely.")
@@ -42,8 +42,7 @@ env = make_env()
 env = wrappers.Monitor(env, './tmp-videos/run1')
 VALID_ACTIONS = list(range(env.action_space.n))
 
-MODEL_DIR = FLAGS.model_dir
-CHECKPOINT_DIR = os.path.join(MODEL_DIR, "checkpoints-breakout")
+CHECKPOINT_DIR = FLAGS.ckpt_dir
 
 # Optionally empty model directory
 if FLAGS.reset:
