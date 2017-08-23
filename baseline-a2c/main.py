@@ -10,8 +10,8 @@ from wrappers import SubprocVecEnv, wrap_deepmind
 from utils import *
 from monitor import Monitor
 
-class CnnPolicy(object):
 
+class CnnPolicy(object):
     def __init__(self, sess, ob_space, ac_space, nenv, nsteps, nstack, reuse=False):
         nbatch = nenv*nsteps
         nh, nw, nc = ob_space.shape
@@ -46,7 +46,6 @@ class CnnPolicy(object):
         
 
 class Model(object):
-
     def __init__(self, policy, ob_space, ac_space, nenvs, nsteps, nstack, num_procs,
             ent_coef=0.01, vf_coef=0.5, max_grad_norm=0.5, lr=7e-4,
             alpha=0.99, epsilon=1e-5, total_timesteps=int(80e6), lrschedule='linear'):
@@ -118,8 +117,8 @@ class Model(object):
         self.load = load
         tf.global_variables_initializer().run(session=sess)
 
-class Runner(object):
 
+class Runner(object):
     def __init__(self, env, model, nsteps=5, nstack=4, gamma=0.99):
         self.env = env
         self.model = model
@@ -181,6 +180,7 @@ class Runner(object):
         mb_values = mb_values.flatten()
         mb_masks = mb_masks.flatten()
         return mb_obs, mb_states, mb_rewards, mb_masks, mb_actions, mb_values
+
 
 def learn(policy, env, seed, nsteps=5, nstack=4, total_timesteps=int(80e6), vf_coef=0.5, ent_coef=0.01, max_grad_norm=0.5, lr=7e-4, lrschedule='linear', epsilon=1e-5, alpha=0.99, gamma=0.99, log_interval=100):
     tf.reset_default_graph()
