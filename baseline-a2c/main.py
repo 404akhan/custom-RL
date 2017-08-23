@@ -1,6 +1,7 @@
 import os.path as osp
 import gym
 import time
+import argparse
 import joblib
 import logging
 import numpy as np
@@ -208,7 +209,7 @@ def learn(policy, env, seed, nsteps=5, nstack=4, total_timesteps=int(80e6), vf_c
 
 parser = argparse.ArgumentParser(description='A2C')
 parser.add_argument('--nenvs', type=int, default=16)
-parser.add_argument('--seed', type=int, default=1)
+parser.add_argument('--seed', type=int, default=42)
 parser.add_argument('--env-name', default='Breakout')
 parser.add_argument('--log-dir', default='logs')
 
