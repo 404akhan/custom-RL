@@ -209,7 +209,7 @@ def learn(policy, env, seed, nsteps=5, nstack=4, total_timesteps=int(80e6), vf_c
 def main():
     env_id = 'Breakout'
     seed = 42
-    nenvs = 4
+    nenvs = 16
     tf.set_random_seed(seed)
     np.random.seed(seed)
     log_dir = 'logs'
@@ -219,8 +219,9 @@ def main():
     def make_env(rank):
         def env_fn():
             env = gym.make('{}NoFrameskip-v4'.format(env_id))
-            env = Monitor(env, osp.join(log_dir, "{}.monitor.json".format(rank)))
             env.seed(seed + rank)
+            env = Monitor(env, osp.join(log_dir, "{}.monitor.json".format(rank)))
+            gym.logger.setLevel(logging.WARN)
             return wrap_deepmind(env)
         return env_fn
 
