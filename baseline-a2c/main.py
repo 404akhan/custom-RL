@@ -206,28 +206,32 @@ def learn(policy, env, seed, nsteps=5, nstack=4, total_timesteps=int(80e6), vf_c
     env.close()
 
 
-def main():
-    env_id = 'Breakout'
-    seed = 42
-    nenvs = 16
-    tf.set_random_seed(seed)
-    np.random.seed(seed)
-    log_dir = 'logs'
-    if not os.path.exists(log_dir): 
-        os.makedirs(log_dir)
+parser = argparse.ArgumentParser(description='A2C')
+parser.add_argument('--nenvs', type=int, default=16)
+parser.add_argument('--seed', type=int, default=1)
+parser.add_argument('--env-name', default='Breakout')
+parser.add_argument('--log-dir', default='logs')
+
+
+if __name__ == '__main__':
+    args = parser.parse_args()
+    print(args)
+    
+    tf.set_random_seed(args.seed)
+    np.random.seed(args.seed)
+
+    if not os.path.exists(args.log_dir): 
+        os.makedirs(args.log_dir)
 
     def make_env(rank):
         def env_fn():
-            env = gym.make('{}NoFrameskip-v4'.format(env_id))
-            env.seed(seed + rank)
-            env = Monitor(env, osp.join(log_dir, "{}.monitor.json".format(rank)))
+            env = gym.make('{}NoFrameskip-v4'.format(args.env_name))
+            env.seed(args.seed + rank)
+            env = Monitor(env, osp.join(args.log_dir, "{}.monitor.json".format(rank)))
             gym.logger.setLevel(logging.WARN)
             return wrap_deepmind(env)
         return env_fn
 
-    env = SubprocVecEnv([make_env(i) for i in range(nenvs)])
+    env = SubprocVecEnv([make_env(i) for i in range(args.nenvs)])
     policy = CnnPolicy
-    learn(policy, env, seed)
-
-if __name__ == '__main__':
-    main()
+    learn(policy, env, args.seed)
