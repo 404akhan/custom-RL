@@ -126,19 +126,20 @@ class Runner(object):
         nh, nw, nc = env.observation_space.shape
         nenv = env.num_envs
         self.batch_ob_shape = (nenv*nsteps, nh, nw, nc*nstack)
-        self.obs = np.zeros((nenv, nh, nw, nc*nstack), dtype=np.uint8)
-        obs = env.reset()
-        self.update_obs(obs)
+        # self.obs = np.zeros((nenv, nh, nw, nc*nstack), dtype=np.uint8)
+        # obs = env.reset()
+        # self.update_obs(obs)
+        self.obs = env.reset()
         self.gamma = gamma
         self.nsteps = nsteps
         self.states = model.initial_state
         self.dones = [False for _ in range(nenv)]
 
-    def update_obs(self, obs):
-        # Do frame-stacking here instead of the FrameStack wrapper to reduce
-        # IPC overhead
-        self.obs = np.roll(self.obs, shift=-1, axis=3)
-        self.obs[:, :, :, -1] = obs[:, :, :, 0]
+    # def update_obs(self, obs):
+    #     # Do frame-stacking here instead of the FrameStack wrapper to reduce
+    #     # IPC overhead
+    #     self.obs = np.roll(self.obs, shift=-1, axis=3)
+    #     self.obs[:, :, :, -1] = obs[:, :, :, 0]
 
     def run(self):
         mb_obs, mb_rewards, mb_actions, mb_values, mb_dones = [],[],[],[],[]
@@ -149,13 +150,13 @@ class Runner(object):
             mb_actions.append(actions)
             mb_values.append(values)
             mb_dones.append(self.dones)
-            obs, rewards, dones, _ = self.env.step(actions)
+            self.obs, rewards, dones, _ = self.env.step(actions)
             self.states = states
             self.dones = dones
-            for n, done in enumerate(dones):
-                if done:
-                    self.obs[n] = self.obs[n]*0
-            self.update_obs(obs)
+            # for n, done in enumerate(dones):
+            #     if done:
+            #         self.obs[n] = self.obs[n]*0
+            # self.update_obs(obs)
             mb_rewards.append(rewards)
         mb_dones.append(self.dones)
         #batch of steps to batch of rollouts
