@@ -39,7 +39,8 @@ def worker(remote, env_fn_wrapper):
             remote.send((env.action_space, env.observation_space))
         elif cmd == 'last_reward':
             last_reward = env.unwrapped.metadata['last_reward']
-            remote.send(last_reward)
+            action_stats = env.unwrapped.metadata['action_stats']
+            remote.send((last_reward, action_stats))
         else:
             raise NotImplementedError
 
@@ -93,7 +94,9 @@ class SubprocVecEnv(VecEnv):
     def get_last_reward(self):
         for remote in self.remotes:
             remote.send(('last_reward', None))
-        return np.stack([remote.recv() for remote in self.remotes])        
+        results = [remote.recv() for remote in self.remotes]
+        last_reward, action_stats = zip(*results)
+        return np.stack(last_reward), np.mean(action_stats, axis=0).astype(np.int32)
 
     @property
     def num_envs(self):
@@ -266,26 +269,33 @@ class FrameSkipping(gym.Wrapper):
         self.n_aux_acts = n_aux_acts
         self.skip = [2**i for i in range(1, n_aux_acts+1)]
         self.repeat_act = repeat_act # for atair noop - 0, for lab forward - 2
+        self.env.unwrapped.metadata.update({'action_stats': [0]*(self.n_real_acts+self.n_aux_acts)})
+        self.action_stats = [0]*(self.n_real_acts+self.n_aux_acts)
 
     def _step(self, action):
+        self.action_stats[action] += 1
+
         if action < self.n_real_acts:
             obs, reward, done, info = self.env.step(action)
-            return obs, reward, done, info
-
-        """Repeat action, sum reward."""
-        n_repeat = self.skip[action - self.n_real_acts]
-        total_reward = 0.0
-        done = None
-
-        for _ in range(n_repeat):
-            obs, reward, done, info = self.env.step(self.repeat_act)
-            total_reward += reward
             if done:
-                break
+                self.env.unwrapped.metadata.update({'action_stats': self.action_stats})
+                self.action_stats = [0]*(self.n_real_acts+self.n_aux_acts)
+            return obs, reward, done, info
+        else:
+            n_repeat = self.skip[action - self.n_real_acts]
+            total_reward = 0.0
+            done = None
 
-        # TODO try clipping sum reward, total_reward = np.sign(total_reward)
-        # could be bad, no incentive sleep over rewards
-        return obs, total_reward, done, info
+            for _ in range(n_repeat):
+                obs, reward, done, info = self.env.step(self.repeat_act)
+                total_reward += reward
+                if done:
+                    break
+
+            if done:
+                self.env.unwrapped.metadata.update({'action_stats': self.action_stats})
+                self.action_stats = [0]*(self.n_real_acts+self.n_aux_acts)
+            return obs, total_reward, done, info
 
 
 def wrap_deepmind(env, num_skips, episode_life=True, clip_rewards=True):
