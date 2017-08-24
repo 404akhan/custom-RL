@@ -5,4 +5,4 @@ nohup*
 *.log
 rest*.py
 a3c/tmp*
-logs/
+logs*
