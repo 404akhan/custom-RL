@@ -32,6 +32,7 @@ class Monitor(Wrapper):
         self.episode_rewards = []
         self.episode_lengths = []
         self.total_steps = 0
+        self.env.unwrapped.metadata.update({'last_reward': 0})
         self.current_metadata = {} # extra info that gets injected into each log entry
         # Useful for metalearning where we're modifying the environment externally
         # But want our logs to know about these modifications
@@ -80,6 +81,8 @@ class Monitor(Wrapper):
             self.episode_rewards.append(eprew)
             self.episode_lengths.append(eplen)
             info['episode'] = epinfo
+            
+            self.env.unwrapped.metadata['last_reward'] = eprew
         self.total_steps += 1
         return (ob, rew, done, info)
 

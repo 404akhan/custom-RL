@@ -37,6 +37,9 @@ def worker(remote, env_fn_wrapper):
             break
         elif cmd == 'get_spaces':
             remote.send((env.action_space, env.observation_space))
+        elif cmd == 'last_reward':
+            last_reward = env.unwrapped.metadata['last_reward']
+            remote.send(last_reward)
         else:
             raise NotImplementedError
 
@@ -86,6 +89,11 @@ class SubprocVecEnv(VecEnv):
             remote.send(('close', None))
         for p in self.ps:
             p.join()
+
+    def get_last_reward(self):
+        for remote in self.remotes:
+            remote.send(('last_reward', None))
+        return np.stack([remote.recv() for remote in self.remotes])        
 
     @property
     def num_envs(self):

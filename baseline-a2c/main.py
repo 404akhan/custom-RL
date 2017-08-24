@@ -203,8 +203,9 @@ def learn(policy, env, seed, nsteps=5, nstack=4, total_timesteps=int(80e6), vf_c
         nseconds = time.time()-tstart
         fps = int((update*nbatch)/nseconds)
         if update % log_interval == 0 or update == 1:
-            print("nupdates {}, total_timesteps {}, fps {}, policy_loss {}, value_loss {}, policy_entropy {}".format(\
-                update, update*nbatch, fps, float(policy_loss), float(value_loss), float(policy_entropy)))
+            last_rewards = env.get_last_reward()
+            print("nupdates {}, total_timesteps {}, fps {}, mean_reward {:.2f}, std_reward {:.2f}, policy_loss {}, value_loss {}, policy_entropy {}".format(\
+                update, update*nbatch, fps, np.mean(last_rewards), np.std(last_rewards), float(policy_loss), float(value_loss), float(policy_entropy)))
     env.close()
 
 
