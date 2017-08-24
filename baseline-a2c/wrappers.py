@@ -264,7 +264,7 @@ class FrameSkipping(gym.Wrapper):
         # most recent raw observations (for max pooling across time steps)
         self.n_real_acts = self.env.action_space.n
         self.n_aux_acts = n_aux_acts
-        self.skip = [2**i for i in range(1, n_aux_acts)]
+        self.skip = [2**i for i in range(1, n_aux_acts+1)]
         self.repeat_act = repeat_act # for atair noop - 0, for lab forward - 2
 
     def _step(self, action):
