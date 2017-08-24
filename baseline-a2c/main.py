@@ -17,7 +17,7 @@ class CnnPolicy(object):
         nbatch = nenv*nsteps
         nh, nw, nc = ob_space.shape
         ob_shape = (nbatch, nh, nw, nc)
-        nact = ac_space.n
+        nact = ac_space.n + 3 # aux act hardcode
         X = tf.placeholder(tf.uint8, ob_shape) #obs
         with tf.variable_scope("model", reuse=reuse):
             h = conv(tf.cast(X, tf.float32)/255., 'c1', nf=32, rf=8, stride=4, init_scale=np.sqrt(2))
@@ -203,8 +203,8 @@ def learn(policy, env, seed, nsteps=5, nstack=4, total_timesteps=int(80e6), vf_c
         nseconds = time.time()-tstart
         fps = int((update*nbatch)/nseconds)
         if update % log_interval == 0 or update == 1:
-            print("nupdates {}, total_timesteps {}, fps {}, policy_entropy {}, value_loss {}".format(\
-                update, update*nbatch, fps, float(policy_entropy), float(value_loss)))
+            print("nupdates {}, total_timesteps {}, fps {}, policy_loss {}, value_loss {}, policy_entropy {}".format(\
+                update, update*nbatch, fps, float(policy_loss), float(value_loss), float(policy_entropy)))
     env.close()
 
 

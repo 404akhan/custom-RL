@@ -249,6 +249,37 @@ class FrameStack(gym.Wrapper):
         assert len(self.frames) == self.k
         return np.concatenate(self.frames, axis=2)
 
+class FrameSkipping(gym.Wrapper):
+    def __init__(self, env, n_aux_acts=3, repeat_act=0):
+        """Frame skipping with aux actions"""
+        gym.Wrapper.__init__(self, env)
+        # most recent raw observations (for max pooling across time steps)
+        self.n_real_acts = self.env.action_space.n
+        self.n_aux_acts = n_aux_acts
+        self.skip = [2, 4, 8]
+        self.repeat_act = repeat_act # for atair noop - 0, for lab forward - 2
+
+    def _step(self, action):
+        if action < self.n_real_acts:
+            obs, reward, done, info = self.env.step(action)
+            return obs, reward, done, info
+
+        """Repeat action, sum reward."""
+        n_repeat = self.skip[action - self.n_real_acts]
+        total_reward = 0.0
+        done = None
+
+        for _ in range(n_repeat):
+            obs, reward, done, info = self.env.step(self.repeat_act)
+            total_reward += reward
+            if done:
+                break
+
+        # TODO try clipping sum reward, total_reward = np.sign(total_reward)
+        # could be bad, no incentive sleep over rewards
+        return obs, total_reward, done, info
+
+
 def wrap_deepmind(env, episode_life=True, clip_rewards=True):
     """Configure environment for DeepMind-style Atari.
     Note: this does not include frame stacking!"""
@@ -263,4 +294,5 @@ def wrap_deepmind(env, episode_life=True, clip_rewards=True):
     if clip_rewards:
         env = ClipRewardEnv(env)
     env = FrameStack(env, k=4)
+    env = FrameSkipping(env)
     return env
