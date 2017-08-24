@@ -13,11 +13,11 @@ from monitor import Monitor
 
 
 class CnnPolicy(object):
-    def __init__(self, sess, ob_space, ac_space, nenv, nsteps, nstack, reuse=False):
+    def __init__(self, sess, ob_space, ac_space, num_skips, nenv, nsteps, nstack, reuse=False):
         nbatch = nenv*nsteps
         nh, nw, nc = ob_space.shape
         ob_shape = (nbatch, nh, nw, nc)
-        nact = ac_space.n + 3 # aux act hardcode
+        nact = ac_space.n + num_skips
         X = tf.placeholder(tf.uint8, ob_shape) #obs
         with tf.variable_scope("model", reuse=reuse):
             h = conv(tf.cast(X, tf.float32)/255., 'c1', nf=32, rf=8, stride=4, init_scale=np.sqrt(2))
@@ -47,7 +47,7 @@ class CnnPolicy(object):
         
 
 class Model(object):
-    def __init__(self, policy, ob_space, ac_space, nenvs, nsteps, nstack, num_procs,
+    def __init__(self, policy, ob_space, ac_space, num_skips, nenvs, nsteps, nstack, num_procs,
             ent_coef=0.01, vf_coef=0.5, max_grad_norm=0.5, lr=7e-4,
             alpha=0.99, epsilon=1e-5, total_timesteps=int(80e6), lrschedule='linear'):
         config = tf.ConfigProto(allow_soft_placement=True,
@@ -63,8 +63,8 @@ class Model(object):
         R = tf.placeholder(tf.float32, [nbatch])
         LR = tf.placeholder(tf.float32, [])
 
-        step_model = policy(sess, ob_space, ac_space, nenvs, 1, nstack, reuse=False)
-        train_model = policy(sess, ob_space, ac_space, nenvs, nsteps, nstack, reuse=True)
+        step_model = policy(sess, ob_space, ac_space, num_skips, nenvs, 1, nstack, reuse=False)
+        train_model = policy(sess, ob_space, ac_space, num_skips, nenvs, nsteps, nstack, reuse=True)
 
         neglogpac = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=train_model.pi, labels=A)
         pg_loss = tf.reduce_mean(ADV * neglogpac)
@@ -184,14 +184,14 @@ class Runner(object):
         return mb_obs, mb_states, mb_rewards, mb_masks, mb_actions, mb_values
 
 
-def learn(policy, env, seed, nsteps=5, nstack=4, total_timesteps=int(80e6), vf_coef=0.5, ent_coef=0.01, max_grad_norm=0.5, lr=7e-4, lrschedule='linear', epsilon=1e-5, alpha=0.99, gamma=0.99, log_interval=100):
+def learn(policy, env, seed, num_skips, nsteps=5, nstack=4, total_timesteps=int(80e6), vf_coef=0.5, ent_coef=0.01, max_grad_norm=0.5, lr=7e-4, lrschedule='linear', epsilon=1e-5, alpha=0.99, gamma=0.99, log_interval=100):
     tf.reset_default_graph()
 
     nenvs = env.num_envs
     ob_space = env.observation_space
     ac_space = env.action_space
     num_procs = len(env.remotes) # HACK
-    model = Model(policy=policy, ob_space=ob_space, ac_space=ac_space, nenvs=nenvs, nsteps=nsteps, nstack=nstack, num_procs=num_procs, ent_coef=ent_coef, vf_coef=vf_coef,
+    model = Model(policy=policy, ob_space=ob_space, ac_space=ac_space, num_skips=num_skips, nenvs=nenvs, nsteps=nsteps, nstack=nstack, num_procs=num_procs, ent_coef=ent_coef, vf_coef=vf_coef,
         max_grad_norm=max_grad_norm, lr=lr, alpha=alpha, epsilon=epsilon, total_timesteps=total_timesteps, lrschedule=lrschedule)
     runner = Runner(env, model, nsteps=nsteps, nstack=nstack, gamma=gamma)
 
@@ -212,6 +212,8 @@ def learn(policy, env, seed, nsteps=5, nstack=4, total_timesteps=int(80e6), vf_c
 parser = argparse.ArgumentParser(description='A2C')
 parser.add_argument('--nenvs', type=int, default=16)
 parser.add_argument('--seed', type=int, default=42)
+parser.add_argument('--num-skips', type=int, default=3)
+
 parser.add_argument('--env-name', default='Breakout')
 parser.add_argument('--log-dir', default='logs')
 
@@ -232,9 +234,9 @@ if __name__ == '__main__':
             env.seed(args.seed + rank)
             env = Monitor(env, osp.join(args.log_dir, "{}.monitor.json".format(rank)))
             gym.logger.setLevel(logging.WARN)
-            return wrap_deepmind(env)
+            return wrap_deepmind(env, num_skips=args.num_skips)
         return env_fn
 
     env = SubprocVecEnv([make_env(i) for i in range(args.nenvs)])
     policy = CnnPolicy
-    learn(policy, env, args.seed)
+    learn(policy, env, args.seed, args.num_skips)
