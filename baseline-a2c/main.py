@@ -16,7 +16,7 @@ class CnnPolicy(object):
     def __init__(self, sess, ob_space, ac_space, nenv, nsteps, nstack, reuse=False):
         nbatch = nenv*nsteps
         nh, nw, nc = ob_space.shape
-        ob_shape = (nbatch, nh, nw, nc*nstack)
+        ob_shape = (nbatch, nh, nw, nc)
         nact = ac_space.n
         X = tf.placeholder(tf.uint8, ob_shape) #obs
         with tf.variable_scope("model", reuse=reuse):
@@ -125,7 +125,7 @@ class Runner(object):
         self.model = model
         nh, nw, nc = env.observation_space.shape
         nenv = env.num_envs
-        self.batch_ob_shape = (nenv*nsteps, nh, nw, nc*nstack)
+        self.batch_ob_shape = (nenv*nsteps, nh, nw, nc)
         # self.obs = np.zeros((nenv, nh, nw, nc*nstack), dtype=np.uint8)
         # obs = env.reset()
         # self.update_obs(obs)
