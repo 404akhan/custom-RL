@@ -212,8 +212,9 @@ def learn(policy, env, seed, num_skips, model_path, nsteps=5, nstack=4, total_ti
             last_rewards, action_stats = env.get_last_reward()
             print("nupdates {}, total_timesteps {}, fps {}, mean_r {:.2f}, std_r {:.2f}, {}, p_loss {}, v_loss {}, entr {}".format(\
                 update, update*nbatch, fps, np.mean(last_rewards), np.std(last_rewards), action_stats, float(policy_loss), float(value_loss), float(policy_entropy)))
-        if update % 10000 == 0:
+        if update % 10000 == 0 or update == 1:
             model.save(model_path)
+            print('saved model, nupdates {}'.format(update))
 
     env.close()
 

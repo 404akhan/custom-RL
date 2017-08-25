@@ -6,3 +6,4 @@ nohup*
 rest*.py
 a3c/tmp*
 logs*
+model/
