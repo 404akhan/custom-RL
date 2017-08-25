@@ -305,7 +305,7 @@ def wrap_deepmind(env, num_skips, episode_life=True, clip_rewards=True):
     if episode_life:
         env = EpisodicLifeEnv(env)
     # env = NoopResetEnv(env, noop_max=30)
-    env = MaxAndSkipEnv(env, skip=4)
+    # env = MaxAndSkipEnv(env, skip=4)
     if 'FIRE' in env.unwrapped.get_action_meanings():
         env = FireResetEnv(env)
     env = WarpFrame(env)

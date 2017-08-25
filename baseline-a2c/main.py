@@ -99,14 +99,19 @@ class Model(object):
         def save(save_path):
             ps = sess.run(params)
             make_path(save_path)
-            joblib.dump(ps, save_path)
+            joblib.dump(ps, osp.join(save_path, 'params.ckpt'))
 
         def load(load_path):
-            loaded_params = joblib.load(load_path)
-            restores = []
-            for p, loaded_p in zip(params, loaded_params):
-                restores.append(p.assign(loaded_p))
-            ps = sess.run(restores)
+            load_path = osp.join(load_path, 'params.ckpt')
+            if osp.exists(load_path):
+                loaded_params = joblib.load(load_path)
+                restores = []
+                for p, loaded_p in zip(params, loaded_params):
+                    restores.append(p.assign(loaded_p))
+                ps = sess.run(restores)
+                print('loaded params {}'.format(load_path))
+            else:
+                print('ckpt not found')
 
         self.train = train
         self.train_model = train_model
@@ -184,7 +189,7 @@ class Runner(object):
         return mb_obs, mb_states, mb_rewards, mb_masks, mb_actions, mb_values
 
 
-def learn(policy, env, seed, num_skips, nsteps=5, nstack=4, total_timesteps=int(80e6), vf_coef=0.5, ent_coef=0.01, max_grad_norm=0.5, lr=7e-4, lrschedule='linear', epsilon=1e-5, alpha=0.99, gamma=0.99, log_interval=100):
+def learn(policy, env, seed, num_skips, model_path, nsteps=5, nstack=4, total_timesteps=int(80e6), vf_coef=0.5, ent_coef=0.01, max_grad_norm=0.5, lr=7e-4, lrschedule='linear', epsilon=1e-5, alpha=0.99, gamma=0.99, log_interval=100):
     tf.reset_default_graph()
 
     nenvs = env.num_envs
@@ -193,6 +198,7 @@ def learn(policy, env, seed, num_skips, nsteps=5, nstack=4, total_timesteps=int(
     num_procs = len(env.remotes) # HACK
     model = Model(policy=policy, ob_space=ob_space, ac_space=ac_space, num_skips=num_skips, nenvs=nenvs, nsteps=nsteps, nstack=nstack, num_procs=num_procs, ent_coef=ent_coef, vf_coef=vf_coef,
         max_grad_norm=max_grad_norm, lr=lr, alpha=alpha, epsilon=epsilon, total_timesteps=total_timesteps, lrschedule=lrschedule)
+    model.load(model_path)
     runner = Runner(env, model, nsteps=nsteps, nstack=nstack, gamma=gamma)
 
     nbatch = nenvs*nsteps
@@ -206,6 +212,9 @@ def learn(policy, env, seed, num_skips, nsteps=5, nstack=4, total_timesteps=int(
             last_rewards, action_stats = env.get_last_reward()
             print("nupdates {}, total_timesteps {}, fps {}, mean_r {:.2f}, std_r {:.2f}, {}, p_loss {}, v_loss {}, entr {}".format(\
                 update, update*nbatch, fps, np.mean(last_rewards), np.std(last_rewards), action_stats, float(policy_loss), float(value_loss), float(policy_entropy)))
+        if update % 10000 == 0:
+            model.save(model_path)
+
     env.close()
 
 
@@ -216,6 +225,7 @@ parser.add_argument('--num-skips', type=int, default=3)
 
 parser.add_argument('--env-name', default='Breakout')
 parser.add_argument('--log-dir', default='logs')
+parser.add_argument('--model-path', default='model')
 
 
 if __name__ == '__main__':
@@ -230,7 +240,7 @@ if __name__ == '__main__':
 
     def make_env(rank):
         def env_fn():
-            env = gym.make('{}NoFrameskip-v4'.format(args.env_name))
+            env = gym.make('{}-v0'.format(args.env_name))
             env.seed(args.seed + rank)
             env = Monitor(env, osp.join(args.log_dir, "{}.monitor.json".format(rank)))
             gym.logger.setLevel(logging.WARN)
@@ -239,4 +249,4 @@ if __name__ == '__main__':
 
     env = SubprocVecEnv([make_env(i) for i in range(args.nenvs)])
     policy = CnnPolicy
-    learn(policy, env, args.seed, args.num_skips)
+    learn(policy, env, args.seed, args.num_skips, args.model_path)
