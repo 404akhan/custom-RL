@@ -301,7 +301,7 @@ class FrameSkipping(gym.Wrapper):
 def wrap_deepmind(env, num_skips, episode_life=True, clip_rewards=True):
     """Configure environment for DeepMind-style Atari.
     Note: this does not include frame stacking!"""
-    assert 'NoFrameskip' in env.spec.id  # required for DeepMind-style skip
+    # assert 'NoFrameskip' in env.spec.id  # required for DeepMind-style skip
     if episode_life:
         env = EpisodicLifeEnv(env)
     # env = NoopResetEnv(env, noop_max=30)
