@@ -214,6 +214,7 @@ parser.add_argument('--nenvs', type=int, default=16)
 parser.add_argument('--seed', type=int, default=42)
 parser.add_argument('--num-skips', type=int, default=3)
 
+parser.add_argument('--gamma', type=float, default=0.99)
 parser.add_argument('--env-name', default='Breakout')
 parser.add_argument('--log-dir', default='logs')
 
@@ -239,4 +240,4 @@ if __name__ == '__main__':
 
     env = SubprocVecEnv([make_env(i) for i in range(args.nenvs)])
     policy = CnnPolicy
-    learn(policy, env, args.seed, args.num_skips)
+    learn(policy, env, args.seed, args.num_skips, gamma=args.gamma)
