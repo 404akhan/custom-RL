@@ -189,7 +189,7 @@ class Runner(object):
         return mb_obs, mb_states, mb_rewards, mb_masks, mb_actions, mb_values
 
 
-def learn(policy, env, seed, num_skips, model_path, nsteps=5, nstack=4, total_timesteps=int(80e6), vf_coef=0.5, ent_coef=0.01, max_grad_norm=0.5, lr=7e-4, lrschedule='linear', epsilon=1e-5, alpha=0.99, gamma=0.99, log_interval=100):
+def learn(policy, env, seed, num_skips, model_path, nsteps=5, nstack=4, total_timesteps=int(1e9), vf_coef=0.5, ent_coef=0.01, max_grad_norm=0.5, lr=7e-4, lrschedule='linear', epsilon=1e-5, alpha=0.99, gamma=0.99, log_interval=100):
     tf.reset_default_graph()
 
     nenvs = env.num_envs
