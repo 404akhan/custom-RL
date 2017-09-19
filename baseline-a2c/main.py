@@ -189,7 +189,7 @@ class Runner(object):
         return mb_obs, mb_states, mb_rewards, mb_masks, mb_actions, mb_values
 
 
-def learn(policy, env, seed, num_skips, model_path, nsteps=5, nstack=4, total_timesteps=int(1e9), vf_coef=0.5, ent_coef=0.01, max_grad_norm=0.5, lr=7e-4, lrschedule='linear', epsilon=1e-5, alpha=0.99, gamma=0.99, log_interval=100):
+def learn(policy, env, seed, num_skips, model_path, nsteps, nstack=4, total_timesteps=int(1e9), vf_coef=0.5, ent_coef=0.01, max_grad_norm=0.5, lr=7e-4, lrschedule='linear', epsilon=1e-5, alpha=0.99, gamma=0.99, log_interval=100):
     tf.reset_default_graph()
 
     nenvs = env.num_envs
@@ -222,6 +222,7 @@ parser = argparse.ArgumentParser(description='A2C')
 parser.add_argument('--nenvs', type=int, default=16)
 parser.add_argument('--seed', type=int, default=42)
 parser.add_argument('--num-skips', type=int, default=3)
+parser.add_argument('--nsteps', type=int, default=5)
 
 parser.add_argument('--gamma', type=float, default=0.99)
 parser.add_argument('--env-name', default='Breakout')
@@ -250,4 +251,4 @@ if __name__ == '__main__':
 
     env = SubprocVecEnv([make_env(i) for i in range(args.nenvs)])
     policy = CnnPolicy
-    learn(policy, env, args.seed, args.num_skips, args.model_path, gamma=args.gamma)
+    learn(policy, env, args.seed, args.num_skips, args.model_path, args.nsteps, gamma=args.gamma)
